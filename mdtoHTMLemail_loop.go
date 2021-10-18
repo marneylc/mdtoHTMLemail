@@ -25,9 +25,8 @@ func mdtohtml(filename string) []byte {
 }
 
 // email sending
-func sendmail(
-	filename string,
-	htmlBody []byte,
+func sendmultiplemail(
+	dirname string,
 	username string,
 	password string,
 	smtphost string,
@@ -39,32 +38,37 @@ func sendmail(
 	server.Username = username
 	server.Password = password
 	server.Encryption = mail.EncryptionTLS
-
+	server.KeepAlive = true // for multiple emails in one connection
 	smtpClient, err := server.Connect()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Create email
-	email := mail.NewMSG()
-	email.SetFrom("<" + username + ">")
-	email.AddTo(destination)
-	//	email.AddCc("another_you@example.com")
-	subject := strings.TrimSuffix(filename, filepath.Ext(filename))
-	email.SetSubject(subject)
+	// filenames to convert and send
+	f, _ := os.Open(dirname)
+	files, _ := f.Readdir(-1)
+	f.Close()
 
-	email.SetBody(mail.TextHTML, string(htmlBody))
-	//	email.AddAttachment("super_cool_file.png")
-
-	// Send email
-	err = email.Send(smtpClient)
-	if err != nil {
-		log.Fatal(err)
+	// convert then send
+	for _, file := range files {
+		filename := file.Name()
+		htmlBody := mdtohtml(filename)
+		email := mail.NewMSG()
+		email.SetFrom("<" + username + ">")
+		email.AddTo(destination)
+		//	email.AddCc("another_you@example.com")
+		//	email.AddAttachment("super_cool_file.png")
+		subject := strings.TrimSuffix(filename, filepath.Ext(filename))
+		email.SetSubject(subject)
+		email.SetBody(mail.TextHTML, string(htmlBody))
+		// Send email
+		err = email.Send(smtpClient)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
-// take a look at smtppool
-// https://github.com/knadh/smtppool
 func main() {
 	var dirname, username, password, smtphost, destination string
 	flag.StringVar(&dirname,"dirname", "path/to/markdown/files/", "a path")
@@ -73,12 +77,5 @@ func main() {
 	flag.StringVar(&smtphost,"smtphost", "smtp.gmail.com", "the smpt host")
 	flag.StringVar(&destination,"destination", "johnnyduderino@gmail.com", "the destination inbox")
 	flag.Parse()
-	f, _ := os.Open(dirname)
-	files, _ := f.Readdir(-1)
-	f.Close()
-	for _, file := range files {
-		filename := file.Name()
-		htmlbody := mdtohtml(filename)
-		sendmail(filename, htmlbody, username, password, smtphost, destination)
-	}
+	sendmultiplemail(dirname, username, password, smtphost, destination)
 }
