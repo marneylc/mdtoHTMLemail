@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"flag"
+	//"fmt"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/parser"
@@ -16,7 +17,7 @@ import (
 // read the md file and convert to html
 func mdtohtml(filename string) []byte {
 	dat, _ := ioutil.ReadFile(filename)
-	//fmt.Print(string(dat))
+	//fmt.Println(string(dat))
 	extensions := parser.CommonExtensions | parser.AutoHeadingIDs
 	parser := parser.NewWithExtensions(extensions)
 	md := []byte(dat)
@@ -52,7 +53,9 @@ func sendmultiplemail(
 	// convert then send
 	for _, file := range files {
 		filename := file.Name()
-		htmlBody := mdtohtml(filename)
+		fullname := dirname + file.Name()
+		//fmt.Println(filename)
+		htmlBody := mdtohtml(fullname)
 		email := mail.NewMSG()
 		email.SetFrom("<" + username + ">")
 		email.AddTo(destination)
@@ -71,7 +74,7 @@ func sendmultiplemail(
 
 func main() {
 	var dirname, username, password, smtphost, destination string
-	flag.StringVar(&dirname,"dirname", "path/to/markdown/files/", "a path")
+	flag.StringVar(&dirname,"dirname", "path/to/markdown/files/", "a path with trailing /")
 	flag.StringVar(&username,"username", "johnny@gmail.com", "a username")
 	flag.StringVar(&password,"password", "secret", "a password")
 	flag.StringVar(&smtphost,"smtphost", "smtp.gmail.com", "the smpt host")
